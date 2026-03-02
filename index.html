@@ -10,9 +10,8 @@
 
         :root {
             --bg-grass: #2d5a27;
-            --road-color: #333;
+            --road: #444;
             --ui-bg: rgba(255, 255, 255, 0.1);
-            --text-color: #fff;
             --primary: #4cc9f0;
             --danger: #f72585;
             --success: #4ade80;
@@ -26,37 +25,33 @@
         }
 
         body {
-            background-color: #1a1a1a;
+            background-color: #111;
             font-family: 'Outfit', sans-serif;
-            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: var(--text-color);
+            overflow: hidden;
+            color: white;
         }
 
         #game-container {
             position: relative;
-            width: 100vw;
-            height: 100vh;
-            max-width: 1000px;
-            max-height: 800px;
+            width: 1000px;
+            height: 800px;
             background-color: var(--bg-grass);
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
         canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             display: block;
-            z-index: 1;
+            width: 1000px;
+            height: 800px;
         }
 
+        /* UI */
         .hud {
             position: absolute;
             top: 20px;
@@ -71,38 +66,22 @@
         .stat-card {
             background: var(--ui-bg);
             backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            border-radius: 15px;
+            padding: 10px 25px;
+            border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             text-align: center;
-            min-width: 120px;
         }
 
         .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
             font-weight: 700;
-            opacity: 0.8;
+            opacity: 0.7;
         }
 
         .stat-value {
             font-size: 1.8rem;
             font-weight: 900;
-        }
-
-        .stat-value.urgent {
-            color: var(--danger);
-            animation: pulse 0.5s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from {
-                transform: scale(1);
-            }
-
-            to {
-                transform: scale(1.1);
-            }
         }
 
         #overlay {
@@ -114,39 +93,33 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(4px);
             text-align: center;
-            padding: 20px;
+            padding: 40px;
         }
 
         #overlay h1 {
-            font-size: 4rem;
-            margin-bottom: 5px;
+            font-size: 5rem;
+            margin-bottom: 10px;
             background: linear-gradient(45deg, var(--primary), var(--success));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 900;
         }
 
-        #overlay p {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            max-width: 500px;
-            opacity: 0.9;
-        }
-
         .btn {
             background: linear-gradient(135deg, var(--primary), #3f37c9);
             color: white;
             border: none;
-            padding: 15px 45px;
-            font-size: 1.3rem;
+            padding: 18px 50px;
+            font-size: 1.4rem;
             font-weight: 800;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             text-transform: uppercase;
-            transition: transform 0.2s;
+            transition: 0.2s;
+            margin-top: 20px;
         }
 
         .btn:hover {
@@ -164,18 +137,12 @@
             transform: translateX(-50%);
             background: var(--success);
             color: #000;
-            padding: 10px 30px;
+            padding: 12px 35px;
             border-radius: 50px;
             font-weight: 900;
             z-index: 50;
             opacity: 0;
-            pointer-events: none;
-        }
-
-        #notification.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(-20px);
-            transition: 0.3s;
+            transition: 0.4s;
         }
     </style>
 </head>
@@ -185,11 +152,11 @@
     <div id="game-container">
         <div class="hud">
             <div class="stat-card">
-                <div class="stat-label">Level</div>
+                <div class="stat-label">Nível</div>
                 <div id="level-val" class="stat-value">1</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Time Left</div>
+                <div class="stat-label">Tempo</div>
                 <div id="time-val" class="stat-value">60</div>
             </div>
             <div class="stat-card">
@@ -200,11 +167,11 @@
 
         <div id="overlay">
             <h1 id="title">Crazy Traffic</h1>
-            <p id="description">Controle os semáforos clicando neles. Evite colisões!</p>
-            <button class="btn" onclick="startGame()">Começar Jogo</button>
+            <p id="description">Controle os semáforos clicando neles!</p>
+            <button id="start-btn" class="btn" onclick="startGame()">Começar Jogo</button>
         </div>
 
-        <div id="notification">Level Up!</div>
+        <div id="notification">LEVEL UP!</div>
         <canvas id="gameCanvas" width="1000" height="800"></canvas>
     </div>
 
@@ -217,35 +184,29 @@
         const overlay = document.getElementById('overlay');
         const titleEl = document.getElementById('title');
         const descEl = document.getElementById('description');
-        const notification = document.getElementById('notification');
+        const startBtn = document.getElementById('start-btn');
+        const noticeEl = document.getElementById('notification');
 
-        // Constantes do mundo fixo (1000x800)
+        // Configurações
         const W = 1000;
         const H = 800;
-        const ROAD_W = 140;
-        const LIGHT_R = 18;
-        const CAR_W = 34;
-        const CAR_H = 55;
+        const ROAD_W = 150;
+        const LIGHT_R = 20;
+        const CAR_W = 35;
+        const CAR_H = 60;
 
         let gameState = 'MENU';
-        let score = 0;
-        let timeLeft = 60;
-        let level = 1;
-        let spawnRate = 2200;
-        let lastSpawn = 0;
-        let lastTick = 0;
-        let cars = [];
-        let lights = [];
+        let score = 0, timeLeft = 60, level = 1, spawnRate = 2200;
+        let lastSpawn = 0, lastTick = 0;
+        let cars = [], lights = [];
 
         function initLights() {
-            const cx = W / 2;
-            const cy = H / 2;
-            const off = ROAD_W / 2 + 35;
+            const cx = W / 2, cy = H / 2, off = ROAD_W / 2 + 40;
             lights = [
-                { x: cx - off, y: cy + ROAD_W / 2 + 25, dir: 'N', state: 'RED' },
-                { x: cx + off, y: cy - ROAD_W / 2 - 25, dir: 'S', state: 'RED' },
-                { x: cx - ROAD_W / 2 - 25, y: cy - off, dir: 'E', state: 'RED' },
-                { x: cx + ROAD_W / 2 + 25, y: cy + off, dir: 'W', state: 'RED' }
+                { x: cx - off, y: cy + ROAD_W / 2 + 30, dir: 'N', state: 'RED' },
+                { x: cx + off, y: cy - ROAD_W / 2 - 30, dir: 'S', state: 'RED' },
+                { x: cx - ROAD_W / 2 - 30, y: cy - off, dir: 'E', state: 'RED' },
+                { x: cx + ROAD_W / 2 + 30, y: cy + off, dir: 'W', state: 'RED' }
             ];
         }
 
@@ -263,19 +224,17 @@
         }
 
         function drawMap() {
-            const cx = W / 2;
-            const cy = H / 2;
-
+            const cx = W / 2, cy = H / 2;
             ctx.fillStyle = '#2d5a27';
             ctx.fillRect(0, 0, W, H);
 
-            ctx.fillStyle = '#333';
+            // Estradas
+            ctx.fillStyle = '#3c3c3c';
             ctx.fillRect(cx - ROAD_W / 2, 0, ROAD_W, H);
             ctx.fillRect(0, cy - ROAD_W / 2, W, ROAD_W);
 
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([20, 20]);
+            // Faixas brancas
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.setLineDash([20, 20]);
             ctx.beginPath();
             ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - ROAD_W / 2);
             ctx.moveTo(cx, cy + ROAD_W / 2); ctx.lineTo(cx, H);
@@ -283,9 +242,8 @@
             ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(W, cy);
             ctx.stroke();
 
-            ctx.setLineDash([]);
-            ctx.lineWidth = 5;
-            ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+            // Faixas de Pare
+            ctx.setLineDash([]); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,0.8)';
             ctx.beginPath();
             ctx.moveTo(cx - ROAD_W / 2, cy + ROAD_W / 2); ctx.lineTo(cx, cy + ROAD_W / 2);
             ctx.moveTo(cx, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy - ROAD_W / 2);
@@ -294,142 +252,115 @@
             ctx.stroke();
         }
 
-        class Car {
-            constructor(x, y, dx, dy, color) {
-                this.x = x; this.y = y; this.dx = dx; this.dy = dy;
-                this.color = color;
-                this.speed = 2.4 + (level * 0.4);
-                this.w = dx !== 0 ? CAR_H : CAR_W;
-                this.h = dy !== 0 ? CAR_H : CAR_W;
-                this.stopped = false;
-                this.passedLine = false;
-            }
-
-            update() {
-                let stop = false;
-                const cx = W / 2; const cy = H / 2;
-
-                lights.forEach(l => {
-                    let d = Infinity;
-                    if (l.dir === 'N' && this.dy < 0 && Math.abs(this.x - (cx - ROAD_W / 4)) < 15) d = this.y - (cy + ROAD_W / 2);
-                    if (l.dir === 'S' && this.dy > 0 && Math.abs(this.x - (cx + ROAD_W / 4)) < 15) d = (cy - ROAD_W / 2) - this.y;
-                    if (l.dir === 'E' && this.dx > 0 && Math.abs(this.y - (cy + ROAD_W / 4)) < 15) d = (cx - ROAD_W / 2) - this.x;
-                    if (l.dir === 'W' && this.dx < 0 && Math.abs(this.y - (cy - ROAD_W / 4)) < 15) d = this.x - (cx + ROAD_W / 2);
-
-                    if (d > 0 && d < 80) {
-                        if (l.state === 'RED') stop = true;
-                        else this.passedLine = true;
-                    }
-                });
-
-                cars.forEach(o => {
-                    if (o === this) return;
-                    let d = Infinity;
-                    if (this.dx === o.dx && this.dy === o.dy) {
-                        if (this.dy < 0) d = this.y - o.y;
-                        else if (this.dy > 0) d = o.y - this.y;
-                        else if (this.dx > 0) d = o.x - this.x;
-                        else if (this.dx < 0) d = this.x - o.x;
-                    }
-                    if (d > 0 && d < 70) stop = true;
-                });
-
-                this.stopped = stop;
-                if (!this.stopped) { this.x += this.dx * this.speed; this.y += this.dy * this.speed; }
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
-                ctx.fillRect(-this.w / 2 + 4, -this.h / 2 + 4, this.w, this.h);
-                ctx.fillStyle = this.color;
-
-                const r = 8;
-                ctx.beginPath();
-                ctx.moveTo(-this.w / 2 + r, -this.h / 2); ctx.lineTo(this.w / 2 - r, -this.h / 2);
-                ctx.quadraticCurveTo(this.w / 2, -this.h / 2, this.w / 2, -this.h / 2 + r);
-                ctx.lineTo(this.w / 2, this.h / 2 - r); ctx.quadraticCurveTo(this.w / 2, this.h / 2, this.w / 2 - r, this.h / 2);
-                ctx.lineTo(-this.w / 2 + r, this.h / 2); ctx.quadraticCurveTo(-this.w / 2, this.h / 2, -this.w / 2, this.h / 2 - r);
-                ctx.lineTo(-this.w / 2, -this.h / 2 + r); ctx.quadraticCurveTo(-this.w / 2, -this.h / 2, -this.w / 2 + r, -this.h / 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        function spawn() {
-            const cx = W / 2; const cy = H / 2;
-            const pos = [
+        function spawnCar() {
+            const cx = W / 2, cy = H / 2;
+            const setups = [
                 { x: cx - ROAD_W / 4, y: H + 60, dx: 0, dy: -1, c: '#48cae4' },
                 { x: cx + ROAD_W / 4, y: -60, dx: 0, dy: 1, c: '#f72585' },
                 { x: -60, y: cy + ROAD_W / 4, dx: 1, dy: 0, c: '#4ade80' },
                 { x: W + 60, y: cy - ROAD_W / 4, dx: -1, dy: 0, c: '#ffb703' }
             ];
-            const p = pos[Math.floor(Math.random() * 4)];
-            cars.push(new Car(p.x, p.y, p.dx, p.dy, p.c));
+            const s = setups[Math.floor(Math.random() * 4)];
+            cars.push({ x: s.x, y: s.y, dx: s.dx, dy: s.dy, color: s.c, speed: 2.5 + (level * 0.4), w: s.dx !== 0 ? CAR_H : CAR_W, h: s.dy !== 0 ? CAR_H : CAR_W });
         }
 
-        function update(time) {
-            if (gameState === 'PLAYING') {
-                if (time - lastTick > 1000) {
-                    timeLeft--; lastTick = time; timeEl.innerText = timeLeft;
-                    if (timeLeft <= 10) timeEl.classList.add('urgent');
-                    if (timeLeft <= 0) nextLevel();
-                }
-                if (time - lastSpawn > spawnRate) { spawn(); lastSpawn = time; }
+        function updateCar(car) {
+            const cx = W / 2, cy = H / 2;
+            let stop = false;
 
-                for (let i = cars.length - 1; i >= 0; i--) {
-                    const c = cars[i]; c.update();
-                    for (let j = i - 1; j >= 0; j--) {
-                        if (Math.abs(c.x - cars[j].x) < 30 && Math.abs(c.y - cars[j].y) < 30) gameOver();
-                    }
-                    if (c.x < -120 || c.x > W + 120 || c.y < -120 || c.y > H + 120) {
-                        cars.splice(i, 1); score++; scoreEl.innerText = score;
-                    }
+            // Detector de Semáforo
+            lights.forEach(l => {
+                let d = Infinity;
+                if (l.dir === 'N' && car.dy < 0 && Math.abs(car.x - (cx - ROAD_W / 4)) < 15) d = car.y - (cy + ROAD_W / 2);
+                if (l.dir === 'S' && car.dy > 0 && Math.abs(car.x - (cx + ROAD_W / 4)) < 15) d = (cy - ROAD_W / 2) - car.y;
+                if (l.dir === 'E' && car.dx > 0 && Math.abs(car.y - (cy + ROAD_W / 4)) < 15) d = (cx - ROAD_W / 2) - car.x;
+                if (l.dir === 'W' && car.dx < 0 && Math.abs(car.y - (cy - ROAD_W / 4)) < 15) d = car.x - (cx + ROAD_W / 2);
+                if (d > 0 && d < 80 && l.state === 'RED') stop = true;
+            });
+
+            // Detector de proximidade
+            cars.forEach(o => {
+                if (o === car) return;
+                let d = Infinity;
+                if (car.dx === o.dx && car.dy === o.dy) {
+                    if (car.dy < 0) d = car.y - o.y; else if (car.dy > 0) d = o.y - car.y;
+                    else if (car.dx > 0) d = o.x - car.x; else if (car.dx < 0) d = car.x - o.x;
                 }
-            }
-            draw();
-            requestAnimationFrame(update);
+                if (d > 0 && d < 75) stop = true;
+            });
+
+            if (!stop) { car.x += car.dx * car.speed; car.y += car.dy * car.speed; }
         }
 
-        function draw() {
+        function drawCar(car) {
+            ctx.save(); ctx.translate(car.x, car.y);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(-car.w / 2 + 4, -car.h / 2 + 4, car.w, car.h);
+            ctx.fillStyle = car.color;
+            // Carro arredondado
+            const r = 8;
+            ctx.beginPath();
+            ctx.moveTo(-car.w / 2 + r, -car.h / 2); ctx.lineTo(car.w / 2 - r, -car.h / 2); ctx.quadraticCurveTo(car.w / 2, -car.h / 2, car.w / 2, -car.h / 2 + r);
+            ctx.lineTo(car.w / 2, car.h / 2 - r); ctx.quadraticCurveTo(car.w / 2, car.h / 2, car.w / 2 - r, car.h / 2);
+            ctx.lineTo(-car.w / 2 + r, car.h / 2); ctx.quadraticCurveTo(-car.w / 2, car.h / 2, -car.w / 2, car.h / 2 - r);
+            ctx.lineTo(-car.w / 2, -car.h / 2 + r); ctx.quadraticCurveTo(-car.w / 2, -car.h / 2, -car.w / 2 + r, -car.h / 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function loop(time) {
             ctx.clearRect(0, 0, W, H);
             drawMap();
-            cars.forEach(c => c.draw());
+
+            if (gameState === 'PLAYING') {
+                if (time - lastTick > 1000) { timeLeft--; lastTick = time; timeEl.innerText = timeLeft; if (timeLeft <= 0) nextLevel(); }
+                if (time - lastSpawn > spawnRate) { spawnCar(); lastSpawn = time; }
+
+                for (let i = cars.length - 1; i >= 0; i--) {
+                    updateCar(cars[i]);
+                    drawCar(cars[i]);
+                    // Colisão
+                    for (let j = i - 1; j >= 0; j--) {
+                        if (Math.abs(cars[i].x - cars[j].x) < 32 && Math.abs(cars[i].y - cars[j].y) < 32) gameOver();
+                    }
+                    if (cars[i].x < -150 || cars[i].x > W + 150 || cars[i].y < -150 || cars[i].y > H + 150) { cars.splice(i, 1); score++; scoreEl.innerText = score; }
+                }
+            } else if (gameState === 'GAMEOVER' || gameState === 'MENU') {
+                cars.forEach(drawCar);
+            }
+
+            // Desenha semáforos sempre
             lights.forEach(l => {
-                ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_R + 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_R + 6, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = l.state === 'RED' ? '#ff3333' : '#33ff33';
                 ctx.shadowBlur = 20; ctx.shadowColor = ctx.fillStyle;
                 ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_R, 0, Math.PI * 2); ctx.fill();
                 ctx.shadowBlur = 0;
             });
+
+            requestAnimationFrame(loop);
         }
 
         function nextLevel() {
             level++; timeLeft = 60; spawnRate = Math.max(600, spawnRate * 0.82);
-            levelEl.innerText = level; notification.innerText = `LEVEL ${level}!`;
-            notification.classList.add('show'); setTimeout(() => notification.classList.remove('show'), 2000);
+            levelEl.innerText = level; noticeEl.style.opacity = '1';
+            setTimeout(() => noticeEl.style.opacity = '0', 2000);
         }
 
         function gameOver() {
-            gameState = 'GAMEOVER'; overlay.classList.remove('hidden');
-            titleEl.innerText = "FIM DE JOGO"; titleEl.style.color = "var(--danger)";
+            gameState = 'GAMEOVER';
+            overlay.classList.remove('hidden');
+            titleEl.innerText = "GAME OVER";
             descEl.innerText = `Você salvou ${score} carros!`;
+            startBtn.innerText = "Tentar Novamente";
         }
 
-        canvas.addEventListener('mousedown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = W / rect.width;
-            const scaleY = H / rect.height;
-            const mx = (e.clientX - rect.left) * scaleX;
-            const my = (e.clientY - rect.top) * scaleY;
-            lights.forEach(l => {
-                if (Math.hypot(mx - l.x, my - l.y) < LIGHT_R + 20) l.state = (l.state === 'RED' ? 'GREEN' : 'RED');
-            });
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect(), mx = (e.clientX - rect.left) * (W / rect.width), my = (e.clientY - rect.top) * (H / rect.height);
+            lights.forEach(l => { if (Math.hypot(mx - l.x, my - l.y) < LIGHT_R + 25) l.state = (l.state === 'RED' ? 'GREEN' : 'RED'); });
         });
 
         initLights();
-        requestAnimationFrame(update);
+        requestAnimationFrame(loop);
     </script>
 </body>
 

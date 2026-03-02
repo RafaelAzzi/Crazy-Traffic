@@ -11,9 +11,7 @@
         :root {
             --bg-grass: #2d5a27;
             --road-color: #333;
-            --road-line: #fff;
             --ui-bg: rgba(255, 255, 255, 0.1);
-            --ui-blur: 12px;
             --text-color: #fff;
             --primary: #4cc9f0;
             --danger: #f72585;
@@ -40,21 +38,23 @@
 
         #game-container {
             position: relative;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             max-width: 1000px;
             max-height: 800px;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
             background-color: var(--bg-grass);
             overflow: hidden;
-            border-radius: 12px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
         }
 
         canvas {
-            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            cursor: crosshair;
+            display: block;
+            z-index: 1;
         }
 
         .hud {
@@ -70,22 +70,19 @@
 
         .stat-card {
             background: var(--ui-bg);
-            backdrop-filter: blur(var(--ui-blur));
+            backdrop-filter: blur(10px);
             padding: 10px 20px;
             border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            text-align: center;
             min-width: 120px;
         }
 
         .stat-label {
             font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.8;
             font-weight: 700;
+            opacity: 0.8;
         }
 
         .stat-value {
@@ -95,7 +92,7 @@
 
         .stat-value.urgent {
             color: var(--danger);
-            animation: pulse 1s infinite alternate;
+            animation: pulse 0.5s infinite alternate;
         }
 
         @keyframes pulse {
@@ -124,7 +121,7 @@
 
         #overlay h1 {
             font-size: 4rem;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             background: linear-gradient(45deg, var(--primary), var(--success));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -135,7 +132,6 @@
             font-size: 1.2rem;
             margin-bottom: 30px;
             max-width: 500px;
-            line-height: 1.5;
             opacity: 0.9;
         }
 
@@ -143,21 +139,18 @@
             background: linear-gradient(135deg, var(--primary), #3f37c9);
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 15px 45px;
+            font-size: 1.3rem;
             font-weight: 800;
             border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            pointer-events: auto;
+            transition: transform 0.2s;
         }
 
         .btn:hover {
-            transform: scale(1.05) translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            transform: scale(1.05);
         }
 
         .hidden {
@@ -174,15 +167,15 @@
             padding: 10px 30px;
             border-radius: 50px;
             font-weight: 900;
-            z-index: 100;
+            z-index: 50;
             opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
             pointer-events: none;
         }
 
         #notification.show {
             opacity: 1;
             transform: translateX(-50%) translateY(-20px);
+            transition: 0.3s;
         }
     </style>
 </head>
@@ -192,27 +185,27 @@
     <div id="game-container">
         <div class="hud">
             <div class="stat-card">
-                <span class="stat-label">Level</span>
-                <span id="level-val" class="stat-value">1</span>
+                <div class="stat-label">Level</div>
+                <div id="level-val" class="stat-value">1</div>
             </div>
             <div class="stat-card">
-                <span class="stat-label">Time Left</span>
-                <span id="time-val" class="stat-value">60</span>
+                <div class="stat-label">Time Left</div>
+                <div id="time-val" class="stat-value">60</div>
             </div>
             <div class="stat-card">
-                <span class="stat-label">Score</span>
-                <span id="score-val" class="stat-value">0</span>
+                <div class="stat-label">Score</div>
+                <div id="score-val" class="stat-value">0</div>
             </div>
         </div>
 
         <div id="overlay">
             <h1 id="title">Crazy Traffic</h1>
-            <p id="description">Controle os semáforos clicando neles. Não deixe os carros baterem!</p>
-            <button id="start-btn" class="btn" onclick="handleStartClick()">Começar Jogo</button>
+            <p id="description">Controle os semáforos clicando neles. Evite colisões!</p>
+            <button class="btn" onclick="startGame()">Começar Jogo</button>
         </div>
 
         <div id="notification">Level Up!</div>
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" width="1000" height="800"></canvas>
     </div>
 
     <script>
@@ -224,104 +217,80 @@
         const overlay = document.getElementById('overlay');
         const titleEl = document.getElementById('title');
         const descEl = document.getElementById('description');
-        const startBtn = document.getElementById('start-btn');
         const notification = document.getElementById('notification');
 
-        const ROAD_WIDTH = 120;
-        const LIGHT_RADIUS = 15;
-        const CAR_WIDTH = 30;
-        const CAR_HEIGHT = 50;
+        // Constantes do mundo fixo (1000x800)
+        const W = 1000;
+        const H = 800;
+        const ROAD_W = 140;
+        const LIGHT_R = 18;
+        const CAR_W = 34;
+        const CAR_H = 55;
 
         let gameState = 'MENU';
         let score = 0;
         let timeLeft = 60;
         let level = 1;
-        let spawnRate = 2000;
-        let lastSpawnTime = 0;
-        let lastTimeTick = 0;
+        let spawnRate = 2200;
+        let lastSpawn = 0;
+        let lastTick = 0;
         let cars = [];
-        let trafficLights = [];
+        let lights = [];
 
-        function resize() {
-            const container = document.getElementById('game-container');
-            const rect = container.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            initTrafficLights();
-        }
-
-        window.addEventListener('resize', resize);
-        resize();
-
-        function handleStartClick() {
-            resize(); // Garante o tamanho correto no momento do play
-            startGame();
+        function initLights() {
+            const cx = W / 2;
+            const cy = H / 2;
+            const off = ROAD_W / 2 + 35;
+            lights = [
+                { x: cx - off, y: cy + ROAD_W / 2 + 25, dir: 'N', state: 'RED' },
+                { x: cx + off, y: cy - ROAD_W / 2 - 25, dir: 'S', state: 'RED' },
+                { x: cx - ROAD_W / 2 - 25, y: cy - off, dir: 'E', state: 'RED' },
+                { x: cx + ROAD_W / 2 + 25, y: cy + off, dir: 'W', state: 'RED' }
+            ];
         }
 
         function startGame() {
             gameState = 'PLAYING';
-            score = 0;
-            timeLeft = 60;
-            level = 1;
-            spawnRate = 2000;
+            score = 0; timeLeft = 60; level = 1; spawnRate = 2200;
             cars = [];
             scoreEl.innerText = score;
             timeEl.innerText = timeLeft;
             levelEl.innerText = level;
-            timeEl.classList.remove('urgent');
             overlay.classList.add('hidden');
-
-            const now = performance.now();
-            lastSpawnTime = now - spawnRate; // Força spawn imediato
-            lastTimeTick = now;
-            initTrafficLights();
-        }
-
-        function initTrafficLights() {
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const off = ROAD_WIDTH / 2 + 30;
-            trafficLights = [
-                { x: cx - off, y: cy + ROAD_WIDTH / 2 + 20, dir: 'N', state: 'RED' },
-                { x: cx + off, y: cy - ROAD_WIDTH / 2 - 20, dir: 'S', state: 'RED' },
-                { x: cx - ROAD_WIDTH / 2 - 20, y: cy - off, dir: 'E', state: 'RED' },
-                { x: cx + ROAD_WIDTH / 2 + 20, y: cy + off, dir: 'W', state: 'RED' }
-            ];
+            lastTick = performance.now();
+            lastSpawn = 0;
+            initLights();
         }
 
         function drawMap() {
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+            const cx = W / 2;
+            const cy = H / 2;
 
-            // Grama
             ctx.fillStyle = '#2d5a27';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, W, H);
 
-            // Estradas
             ctx.fillStyle = '#333';
-            ctx.fillRect(cx - ROAD_WIDTH / 2, 0, ROAD_WIDTH, canvas.height);
-            ctx.fillRect(0, cy - ROAD_WIDTH / 2, canvas.width, ROAD_WIDTH);
+            ctx.fillRect(cx - ROAD_W / 2, 0, ROAD_W, H);
+            ctx.fillRect(0, cy - ROAD_W / 2, W, ROAD_W);
 
-            // Faixas brancas
             ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 3;
             ctx.setLineDash([20, 20]);
             ctx.beginPath();
-            ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - ROAD_WIDTH / 2);
-            ctx.moveTo(cx, cy + ROAD_WIDTH / 2); ctx.lineTo(cx, canvas.height);
-            ctx.moveTo(0, cy); ctx.lineTo(cx - ROAD_WIDTH / 2, cy);
-            ctx.moveTo(cx + ROAD_WIDTH / 2, cy); ctx.lineTo(canvas.width, cy);
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - ROAD_W / 2);
+            ctx.moveTo(cx, cy + ROAD_W / 2); ctx.lineTo(cx, H);
+            ctx.moveTo(0, cy); ctx.lineTo(cx - ROAD_W / 2, cy);
+            ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(W, cy);
             ctx.stroke();
 
-            // Faixas de Pare
             ctx.setLineDash([]);
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(255,255,255,0.7)';
             ctx.beginPath();
-            ctx.moveTo(cx - ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2); ctx.lineTo(cx, cy + ROAD_WIDTH / 2);
-            ctx.moveTo(cx, cy - ROAD_WIDTH / 2); ctx.lineTo(cx + ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2);
-            ctx.moveTo(cx - ROAD_WIDTH / 2, cy); ctx.lineTo(cx - ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2);
-            ctx.moveTo(cx + ROAD_WIDTH / 2, cy); ctx.lineTo(cx + ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2);
+            ctx.moveTo(cx - ROAD_W / 2, cy + ROAD_W / 2); ctx.lineTo(cx, cy + ROAD_W / 2);
+            ctx.moveTo(cx, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy - ROAD_W / 2);
+            ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy - ROAD_W / 2);
+            ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(cx + ROAD_W / 2, cy + ROAD_W / 2);
             ctx.stroke();
         }
 
@@ -329,33 +298,30 @@
             constructor(x, y, dx, dy, color) {
                 this.x = x; this.y = y; this.dx = dx; this.dy = dy;
                 this.color = color;
-                this.speed = 2.2 + (level * 0.4);
-                this.w = dx !== 0 ? CAR_HEIGHT : CAR_WIDTH;
-                this.h = dy !== 0 ? CAR_HEIGHT : CAR_WIDTH;
+                this.speed = 2.4 + (level * 0.4);
+                this.w = dx !== 0 ? CAR_H : CAR_W;
+                this.h = dy !== 0 ? CAR_H : CAR_W;
                 this.stopped = false;
-                this.passedStopLine = false;
+                this.passedLine = false;
             }
 
             update() {
-                let shouldStop = false;
-                const cx = canvas.width / 2;
-                const cy = canvas.height / 2;
+                let stop = false;
+                const cx = W / 2; const cy = H / 2;
 
-                // Semáforos
-                trafficLights.forEach(l => {
+                lights.forEach(l => {
                     let d = Infinity;
-                    if (l.dir === 'N' && this.dy < 0 && Math.abs(this.x - (cx - ROAD_WIDTH / 4)) < 10) d = this.y - (cy + ROAD_WIDTH / 2);
-                    if (l.dir === 'S' && this.dy > 0 && Math.abs(this.x - (cx + ROAD_WIDTH / 4)) < 10) d = (cy - ROAD_WIDTH / 2) - this.y;
-                    if (l.dir === 'E' && this.dx > 0 && Math.abs(this.y - (cy + ROAD_WIDTH / 4)) < 10) d = (cx - ROAD_WIDTH / 2) - this.x;
-                    if (l.dir === 'W' && this.dx < 0 && Math.abs(this.y - (cy - ROAD_WIDTH / 4)) < 10) d = this.x - (cx + ROAD_WIDTH / 2);
+                    if (l.dir === 'N' && this.dy < 0 && Math.abs(this.x - (cx - ROAD_W / 4)) < 15) d = this.y - (cy + ROAD_W / 2);
+                    if (l.dir === 'S' && this.dy > 0 && Math.abs(this.x - (cx + ROAD_W / 4)) < 15) d = (cy - ROAD_W / 2) - this.y;
+                    if (l.dir === 'E' && this.dx > 0 && Math.abs(this.y - (cy + ROAD_W / 4)) < 15) d = (cx - ROAD_W / 2) - this.x;
+                    if (l.dir === 'W' && this.dx < 0 && Math.abs(this.y - (cy - ROAD_W / 4)) < 15) d = this.x - (cx + ROAD_W / 2);
 
-                    if (d > 0 && d < 70) {
-                        if (l.state === 'RED') shouldStop = true;
-                        else this.passedStopLine = true;
+                    if (d > 0 && d < 80) {
+                        if (l.state === 'RED') stop = true;
+                        else this.passedLine = true;
                     }
                 });
 
-                // Carro na frente
                 cars.forEach(o => {
                     if (o === this) return;
                     let d = Infinity;
@@ -365,14 +331,11 @@
                         else if (this.dx > 0) d = o.x - this.x;
                         else if (this.dx < 0) d = this.x - o.x;
                     }
-                    if (d > 0 && d < 60) shouldStop = true;
+                    if (d > 0 && d < 70) stop = true;
                 });
 
-                this.stopped = shouldStop;
-                if (!this.stopped) {
-                    this.x += this.dx * this.speed;
-                    this.y += this.dy * this.speed;
-                }
+                this.stopped = stop;
+                if (!this.stopped) { this.x += this.dx * this.speed; this.y += this.dy * this.speed; }
             }
 
             draw() {
@@ -382,51 +345,45 @@
                 ctx.fillRect(-this.w / 2 + 4, -this.h / 2 + 4, this.w, this.h);
                 ctx.fillStyle = this.color;
 
-                // Desenho arredondado compatível
-                const r = 6;
+                const r = 8;
                 ctx.beginPath();
-                ctx.moveTo(-this.w / 2 + r, -this.h / 2);
-                ctx.lineTo(this.w / 2 - r, -this.h / 2);
+                ctx.moveTo(-this.w / 2 + r, -this.h / 2); ctx.lineTo(this.w / 2 - r, -this.h / 2);
                 ctx.quadraticCurveTo(this.w / 2, -this.h / 2, this.w / 2, -this.h / 2 + r);
-                ctx.lineTo(this.w / 2, this.h / 2 - r);
-                ctx.quadraticCurveTo(this.w / 2, this.h / 2, this.w / 2 - r, this.h / 2);
-                ctx.lineTo(-this.w / 2 + r, this.h / 2);
-                ctx.quadraticCurveTo(-this.w / 2, this.h / 2, -this.w / 2, this.h / 2 - r);
-                ctx.lineTo(-this.w / 2, -this.h / 2 + r);
-                ctx.quadraticCurveTo(-this.w / 2, -this.h / 2, -this.w / 2 + r, -this.h / 2);
+                ctx.lineTo(this.w / 2, this.h / 2 - r); ctx.quadraticCurveTo(this.w / 2, this.h / 2, this.w / 2 - r, this.h / 2);
+                ctx.lineTo(-this.w / 2 + r, this.h / 2); ctx.quadraticCurveTo(-this.w / 2, this.h / 2, -this.w / 2, this.h / 2 - r);
+                ctx.lineTo(-this.w / 2, -this.h / 2 + r); ctx.quadraticCurveTo(-this.w / 2, -this.h / 2, -this.w / 2 + r, -this.h / 2);
                 ctx.fill();
                 ctx.restore();
             }
         }
 
-        function spawnCar() {
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
-            const d = [
-                { x: cx - ROAD_WIDTH / 4, y: canvas.height + 50, dx: 0, dy: -1, c: '#4cc9f0' },
-                { x: cx + ROAD_WIDTH / 4, y: -50, dx: 0, dy: 1, c: '#f72585' },
-                { x: -50, y: cy + ROAD_WIDTH / 4, dx: 1, dy: 0, c: '#4ade80' },
-                { x: canvas.width + 50, y: cy - ROAD_WIDTH / 4, dx: -1, dy: 0, c: '#ffb703' }
+        function spawn() {
+            const cx = W / 2; const cy = H / 2;
+            const pos = [
+                { x: cx - ROAD_W / 4, y: H + 60, dx: 0, dy: -1, c: '#48cae4' },
+                { x: cx + ROAD_W / 4, y: -60, dx: 0, dy: 1, c: '#f72585' },
+                { x: -60, y: cy + ROAD_W / 4, dx: 1, dy: 0, c: '#4ade80' },
+                { x: W + 60, y: cy - ROAD_W / 4, dx: -1, dy: 0, c: '#ffb703' }
             ];
-            const s = d[Math.floor(Math.random() * 4)];
-            cars.push(new Car(s.x, s.y, s.dx, s.dy, s.c));
+            const p = pos[Math.floor(Math.random() * 4)];
+            cars.push(new Car(p.x, p.y, p.dx, p.dy, p.c));
         }
 
         function update(time) {
             if (gameState === 'PLAYING') {
-                if (time - lastTimeTick > 1000) {
-                    timeLeft--; lastTimeTick = time; timeEl.innerText = timeLeft;
+                if (time - lastTick > 1000) {
+                    timeLeft--; lastTick = time; timeEl.innerText = timeLeft;
                     if (timeLeft <= 10) timeEl.classList.add('urgent');
                     if (timeLeft <= 0) nextLevel();
                 }
-                if (time - lastSpawnTime > spawnRate) { spawnCar(); lastSpawnTime = time; }
+                if (time - lastSpawn > spawnRate) { spawn(); lastSpawn = time; }
 
                 for (let i = cars.length - 1; i >= 0; i--) {
                     const c = cars[i]; c.update();
                     for (let j = i - 1; j >= 0; j--) {
-                        if (Math.abs(c.x - cars[j].x) < 25 && Math.abs(c.y - cars[j].y) < 25) gameOver();
+                        if (Math.abs(c.x - cars[j].x) < 30 && Math.abs(c.y - cars[j].y) < 30) gameOver();
                     }
-                    if (c.x < -100 || c.x > canvas.width + 100 || c.y < -100 || c.y > canvas.height + 100) {
+                    if (c.x < -120 || c.x > W + 120 || c.y < -120 || c.y > H + 120) {
                         cars.splice(i, 1); score++; scoreEl.innerText = score;
                     }
                 }
@@ -436,39 +393,42 @@
         }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, W, H);
             drawMap();
             cars.forEach(c => c.draw());
-            trafficLights.forEach(l => {
-                ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_RADIUS + 4, 0, Math.PI * 2); ctx.fill();
+            lights.forEach(l => {
+                ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_R + 5, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = l.state === 'RED' ? '#ff3333' : '#33ff33';
-                ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle;
-                ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_RADIUS, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 20; ctx.shadowColor = ctx.fillStyle;
+                ctx.beginPath(); ctx.arc(l.x, l.y, LIGHT_R, 0, Math.PI * 2); ctx.fill();
                 ctx.shadowBlur = 0;
             });
         }
 
         function nextLevel() {
-            level++; timeLeft = 60; spawnRate = Math.max(500, spawnRate * 0.85);
-            levelEl.innerText = level; notification.innerText = `Level ${level}!`;
+            level++; timeLeft = 60; spawnRate = Math.max(600, spawnRate * 0.82);
+            levelEl.innerText = level; notification.innerText = `LEVEL ${level}!`;
             notification.classList.add('show'); setTimeout(() => notification.classList.remove('show'), 2000);
         }
 
         function gameOver() {
             gameState = 'GAMEOVER'; overlay.classList.remove('hidden');
-            titleEl.innerText = "GAME OVER"; titleEl.style.color = "var(--danger)";
-            descEl.innerText = `Pontuação final: ${score} carros!`;
-            startBtn.innerText = "Tentar Novamente";
+            titleEl.innerText = "FIM DE JOGO"; titleEl.style.color = "var(--danger)";
+            descEl.innerText = `Você salvou ${score} carros!`;
         }
 
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
-            trafficLights.forEach(l => {
-                if (Math.hypot(mx - l.x, my - l.y) < LIGHT_RADIUS + 15) l.state = (l.state === 'RED' ? 'GREEN' : 'RED');
+            const scaleX = W / rect.width;
+            const scaleY = H / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            lights.forEach(l => {
+                if (Math.hypot(mx - l.x, my - l.y) < LIGHT_R + 20) l.state = (l.state === 'RED' ? 'GREEN' : 'RED');
             });
         });
 
+        initLights();
         requestAnimationFrame(update);
     </script>
 </body>

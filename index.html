@@ -55,7 +55,6 @@
             cursor: crosshair;
         }
 
-        /* UI Overlays */
         .hud {
             position: absolute;
             top: 20px;
@@ -77,7 +76,6 @@
             flex-direction: column;
             align-items: center;
             min-width: 120px;
-            transition: transform 0.3s ease;
         }
 
         .stat-label {
@@ -159,10 +157,6 @@
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
         }
 
-        .btn:active {
-            transform: scale(0.95) translateY(0);
-        }
-
         .hidden {
             display: none !important;
         }
@@ -231,24 +225,39 @@
         const descEl = document.getElementById('description');
         const notification = document.getElementById('notification');
 
-        // Game Configuration
+        // Helper para compatibilidade de cantos arredondados
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Configurações
         const CAR_WIDTH = 30;
         const CAR_HEIGHT = 50;
         const ROAD_WIDTH = 120;
         const LIGHT_RADIUS = 15;
         const STOP_LINE_OFFSET = 70;
 
-        let gameState = 'MENU'; // MENU, PLAYING, GAMEOVER
+        let gameState = 'MENU';
         let score = 0;
         let timeLeft = 60;
         let level = 1;
-        let spawnRate = 2000; // ms
+        let spawnRate = 2000;
         let lastSpawnTime = 0;
         let lastTimeTick = 0;
         let cars = [];
         let trafficLights = [];
 
-        // Canvas Setup
         function resize() {
             canvas.width = document.getElementById('game-container').offsetWidth;
             canvas.height = document.getElementById('game-container').offsetHeight;
@@ -258,26 +267,21 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Traffic Light class
         class TrafficLight {
-            constructor(x, y, dx, dy, direction) {
+            constructor(x, y, direction) {
                 this.x = x;
                 this.y = y;
-                this.dx = dx; // x offset for interactive circle
-                this.dy = dy; // y offset for interactive circle
-                this.direction = direction; // 'N', 'S', 'E', 'W'
-                this.state = 'RED'; // RED, GREEN
+                this.direction = direction;
+                this.state = 'RED';
                 this.radius = LIGHT_RADIUS;
             }
 
             draw() {
-                // Draw base
                 ctx.fillStyle = '#222';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius + 4, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Draw light
                 ctx.fillStyle = this.state === 'RED' ? '#ff3333' : '#33ff33';
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = ctx.fillStyle;
@@ -286,7 +290,6 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
 
-                // Add glass reflection
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.beginPath();
                 ctx.arc(this.x - 3, this.y - 3, this.radius / 2.5, 0, Math.PI * 2);
@@ -295,7 +298,7 @@
 
             isClicked(mx, my) {
                 const dist = Math.hypot(mx - this.x, my - this.y);
-                return dist < this.radius + 10;
+                return dist < this.radius + 15;
             }
 
             toggle() {
@@ -303,12 +306,11 @@
             }
         }
 
-        // Car class
         class Car {
             constructor(x, y, dir, speed, color) {
                 this.x = x;
                 this.y = y;
-                this.dir = dir; // {x, y} unit vector
+                this.dir = dir;
                 this.speed = speed;
                 this.color = color;
                 this.stopped = false;
@@ -322,32 +324,22 @@
 
                 let shouldStop = false;
 
-                // Check traffic lights
                 lights.forEach(light => {
                     const stopLine = getStopLine(light);
-
-                    // Only care about lights in our direction before we cross the intersection
                     if (!this.passedStopLine && isHeadingTowards(this, stopLine)) {
                         const dist = distanceToStopLine(this, stopLine);
                         if (dist > 0 && dist < STOP_LINE_OFFSET) {
-                            if (light.state === 'RED') {
-                                shouldStop = true;
-                            }
+                            if (light.state === 'RED') shouldStop = true;
                         }
-                        if (dist < 0 && !shouldStop) {
-                            this.passedStopLine = true;
-                        }
+                        if (dist < 0 && !shouldStop) this.passedStopLine = true;
                     }
                 });
 
-                // Check car ahead (Queueing)
                 cars.forEach(other => {
                     if (other === this) return;
                     if (isCarAhead(this, other)) {
                         const dist = distanceToCar(this, other);
-                        if (dist > 0 && dist < 50) {
-                            shouldStop = true;
-                        }
+                        if (dist > 0 && dist < 50) shouldStop = true;
                     }
                 });
 
@@ -362,36 +354,29 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
 
-                // Shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.2)';
                 ctx.fillRect(-this.width / 2 + 4, -this.height / 2 + 4, this.width, this.height);
 
-                // Body
                 ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 6);
-                ctx.fill();
+                drawRoundedRect(ctx, -this.width / 2, -this.height / 2, this.width, this.height, 6);
 
-                // Roof / Details
                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
                 ctx.fillRect(-this.width / 2 + 5, -this.height / 2 + 10, this.width - 10, this.height - 20);
 
-                // Headlights
                 ctx.fillStyle = '#ffffaa';
-                if (this.dir.y < 0) { // Up
+                if (this.dir.y < 0) {
                     ctx.fillRect(-this.width / 2 + 4, -this.height / 2 + 2, 6, 4);
                     ctx.fillRect(this.width / 2 - 10, -this.height / 2 + 2, 6, 4);
-                } else if (this.dir.y > 0) { // Down
+                } else if (this.dir.y > 0) {
                     ctx.fillRect(-this.width / 2 + 4, this.height / 2 - 6, 6, 4);
                     ctx.fillRect(this.width / 2 - 10, this.height / 2 - 6, 6, 4);
-                } else if (this.dir.x < 0) { // Left
+                } else if (this.dir.x < 0) {
                     ctx.fillRect(-this.width / 2 + 2, -this.height / 2 + 4, 4, 6);
                     ctx.fillRect(-this.width / 2 + 2, this.height / 2 - 10, 4, 6);
-                } else if (this.dir.x > 0) { // Right
+                } else if (this.dir.x > 0) {
                     ctx.fillRect(this.width / 2 - 6, -this.height / 2 + 4, 4, 6);
                     ctx.fillRect(this.width / 2 - 6, this.height / 2 - 10, 4, 6);
                 }
-
                 ctx.restore();
             }
 
@@ -405,17 +390,15 @@
             }
         }
 
-        // Helper functions for collision and stopping logic
         function getStopLine(light) {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
             const offset = ROAD_WIDTH / 2;
-
             switch (light.direction) {
-                case 'N': return { x: centerX - ROAD_WIDTH / 4, y: centerY + offset, dir: 'UP' };
-                case 'S': return { x: centerX + ROAD_WIDTH / 4, y: centerY - offset, dir: 'DOWN' };
-                case 'E': return { x: centerX - offset, y: centerY + ROAD_WIDTH / 4, dir: 'RIGHT' };
-                case 'W': return { x: centerX + offset, y: centerY - ROAD_WIDTH / 4, dir: 'LEFT' };
+                case 'N': return { x: cx - ROAD_WIDTH / 4, y: cy + offset, dir: 'UP' };
+                case 'S': return { x: cx + ROAD_WIDTH / 4, y: cy - offset, dir: 'DOWN' };
+                case 'E': return { x: cx - offset, y: cy + ROAD_WIDTH / 4, dir: 'RIGHT' };
+                case 'W': return { x: cx + offset, y: cy - ROAD_WIDTH / 4, dir: 'LEFT' };
             }
         }
 
@@ -436,7 +419,6 @@
         }
 
         function isCarAhead(car, other) {
-            // Check if trailing the same lane
             if (Math.abs(car.x - other.x) < 20 && car.dir.y !== 0 && car.dir.y === other.dir.y) {
                 const distY = (car.y - other.y) * -car.dir.y;
                 return distY > 0;
@@ -457,129 +439,90 @@
         function checkCollision(c1, c2) {
             const b1 = c1.getBounds();
             const b2 = c2.getBounds();
-            const padding = -2; // Slightly smaller hitboxes for fairness
-            return !(b1.left > b2.right + padding ||
-                b1.right < b2.left - padding ||
-                b1.top > b2.bottom + padding ||
-                b1.bottom < b2.top - padding);
+            const p = -3;
+            return !(b1.left > b2.right + p || b1.right < b2.left - p || b1.top > b2.bottom + p || b1.bottom < b2.top - p);
         }
 
-        // Initialize Traffic Lights
         function initTrafficLights() {
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
             const offset = ROAD_WIDTH / 2 + 30;
-
             trafficLights = [
-                new TrafficLight(cx - offset, cy + ROAD_WIDTH / 2 + 20, 0, 0, 'N'),
-                new TrafficLight(cx + offset, cy - ROAD_WIDTH / 2 - 20, 0, 0, 'S'),
-                new TrafficLight(cx - ROAD_WIDTH / 2 - 20, cy - offset, 0, 0, 'E'),
-                new TrafficLight(cx + ROAD_WIDTH / 2 + 20, cy + offset, 0, 0, 'W')
+                new TrafficLight(cx - offset, cy + ROAD_WIDTH / 2 + 20, 'N'),
+                new TrafficLight(cx + offset, cy - ROAD_WIDTH / 2 - 20, 'S'),
+                new TrafficLight(cx - ROAD_WIDTH / 2 - 20, cy - offset, 'E'),
+                new TrafficLight(cx + ROAD_WIDTH / 2 + 20, cy + offset, 'W')
             ];
         }
 
-        // Map Drawing
         function drawMap() {
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
-
-            // Clear with Grass
             ctx.fillStyle = '#2d5a27';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Roads
             ctx.fillStyle = '#333';
-            // Vertical Road
             ctx.fillRect(cx - ROAD_WIDTH / 2, 0, ROAD_WIDTH, canvas.height);
-            // Horizontal Road
             ctx.fillRect(0, cy - ROAD_WIDTH / 2, canvas.width, ROAD_WIDTH);
-
-            // Lines
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.setLineDash([20, 20]);
-
-            // Vertical dashes
             ctx.beginPath();
             ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - ROAD_WIDTH / 2);
             ctx.moveTo(cx, cy + ROAD_WIDTH / 2); ctx.lineTo(cx, canvas.height);
-            ctx.stroke();
-
-            // Horizontal dashes
-            ctx.beginPath();
             ctx.moveTo(0, cy); ctx.lineTo(cx - ROAD_WIDTH / 2, cy);
             ctx.moveTo(cx + ROAD_WIDTH / 2, cy); ctx.lineTo(canvas.width, cy);
             ctx.stroke();
-
-            // Stop Lines
             ctx.setLineDash([]);
             ctx.lineWidth = 4;
             ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-
-            // N
-            ctx.beginPath(); ctx.moveTo(cx - ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2); ctx.lineTo(cx, cy + ROAD_WIDTH / 2); ctx.stroke();
-            // S
-            ctx.beginPath(); ctx.moveTo(cx, cy - ROAD_WIDTH / 2); ctx.lineTo(cx + ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2); ctx.stroke();
-            // E
-            ctx.beginPath(); ctx.moveTo(cx - ROAD_WIDTH / 2, cy); ctx.lineTo(cx - ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2); ctx.stroke();
-            // W
-            ctx.beginPath(); ctx.moveTo(cx + ROAD_WIDTH / 2, cy); ctx.lineTo(cx + ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx - ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2); ctx.lineTo(cx, cy + ROAD_WIDTH / 2);
+            ctx.moveTo(cx, cy - ROAD_WIDTH / 2); ctx.lineTo(cx + ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2);
+            ctx.moveTo(cx - ROAD_WIDTH / 2, cy); ctx.lineTo(cx - ROAD_WIDTH / 2, cy - ROAD_WIDTH / 2);
+            ctx.moveTo(cx + ROAD_WIDTH / 2, cy); ctx.lineTo(cx + ROAD_WIDTH / 2, cy + ROAD_WIDTH / 2);
+            ctx.stroke();
         }
 
-        // Gameplay Logic
         function spawnCar() {
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
-            const directions = [
-                { x: cx - ROAD_WIDTH / 4, y: canvas.height + 50, dx: 0, dy: -1, color: '#4cc9f0' }, // Northbound
-                { x: cx + ROAD_WIDTH / 4, y: -50, dx: 0, dy: 1, color: '#f72585' },           // Southbound
-                { x: -50, y: cy + ROAD_WIDTH / 4, dx: 1, dy: 0, color: '#4ade80' },          // Eastbound
-                { x: canvas.width + 50, y: cy - ROAD_WIDTH / 4, dx: -1, dy: 0, color: '#ffb703' } // Westbound
+            const dirs = [
+                { x: cx - ROAD_WIDTH / 4, y: canvas.height + 50, dx: 0, dy: -1, color: '#4cc9f0' },
+                { x: cx + ROAD_WIDTH / 4, y: -50, dx: 0, dy: 1, color: '#f72585' },
+                { x: -50, y: cy + ROAD_WIDTH / 4, dx: 1, dy: 0, color: '#4ade80' },
+                { x: canvas.width + 50, y: cy - ROAD_WIDTH / 4, dx: -1, dy: 0, color: '#ffb703' }
             ];
-
-            const config = directions[Math.floor(Math.random() * directions.length)];
+            const cfg = dirs[Math.floor(Math.random() * dirs.length)];
             const speed = 2 + (level * 0.4);
-            const car = new Car(config.x, config.y, { x: config.dx, y: config.dy }, speed, config.color);
-            cars.push(car);
+            cars.push(new Car(cfg.x, cfg.y, { x: cfg.dx, y: cfg.dy }, speed, cfg.color));
         }
 
         function update(time) {
             if (gameState === 'PLAYING') {
-                // Time tracking
                 if (time - lastTimeTick > 1000) {
                     timeLeft--;
                     lastTimeTick = time;
                     timeEl.innerText = timeLeft;
                     if (timeLeft <= 10) timeEl.classList.add('urgent');
                     else timeEl.classList.remove('urgent');
-
                     if (timeLeft <= 0) nextLevel();
                 }
-
-                // Spawning
                 if (time - lastSpawnTime > spawnRate) {
                     spawnCar();
                     lastSpawnTime = time;
                 }
-
-                // Update cars
-                cars.forEach((car, index) => {
+                for (let i = cars.length - 1; i >= 0; i--) {
+                    const car = cars[i];
                     car.update(cars, trafficLights);
-
-                    // Collision check
-                    for (let i = index + 1; i < cars.length; i++) {
-                        if (checkCollision(car, cars[i])) {
-                            gameOver();
-                        }
+                    for (let j = i - 1; j >= 0; j--) {
+                        if (checkCollision(car, cars[j])) gameOver();
                     }
-
-                    // Removal and Scoring
                     if (car.x < -100 || car.x > canvas.width + 100 || car.y < -100 || car.y > canvas.height + 100) {
-                        cars.splice(index, 1);
+                        cars.splice(i, 1);
                         score++;
                         scoreEl.innerText = score;
                     }
-                });
+                }
             }
             draw();
             requestAnimationFrame(update);
@@ -588,12 +531,10 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawMap();
-
             cars.forEach(car => car.draw());
             trafficLights.forEach(light => light.draw());
         }
 
-        // State Transitions
         function startGame() {
             gameState = 'PLAYING';
             score = 0;
@@ -615,7 +556,9 @@
             timeLeft = 60;
             spawnRate = Math.max(500, spawnRate * 0.85);
             levelEl.innerText = level;
-            showNotification(`Level ${level}!`);
+            notification.innerText = `Level ${level}!`;
+            notification.classList.add('show');
+            setTimeout(() => notification.classList.remove('show'), 2000);
         }
 
         function gameOver() {
@@ -623,34 +566,25 @@
             overlay.classList.remove('hidden');
             titleEl.innerText = "GAME OVER";
             titleEl.style.color = "var(--danger)";
-            descEl.innerText = `Sua pontuação final foi de ${score} carros!`;
+            descEl.innerText = `Sua pontuação final: ${score} carros!`;
             startBtn.innerText = "Tentar Novamente";
         }
 
-        function showNotification(text) {
-            notification.innerText = text;
-            notification.classList.add('show');
-            setTimeout(() => notification.classList.remove('show'), 2000);
-        }
-
-        // Input
         canvas.addEventListener('mousedown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-
             trafficLights.forEach(light => {
-                if (light.isClicked(mx, my)) {
-                    light.toggle();
-                }
+                if (light.isClicked(mx, my)) light.toggle();
             });
         });
 
-        startBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startGame();
+        });
 
-        // Start animation loop
         requestAnimationFrame(update);
-
     </script>
 </body>
 

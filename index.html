@@ -205,8 +205,8 @@
             lights = [
                 { x: cx - off, y: cy + ROAD_W / 2 + 30, dir: 'N', state: 'RED' },
                 { x: cx + off, y: cy - ROAD_W / 2 - 30, dir: 'S', state: 'RED' },
-                { x: cx - ROAD_W / 2 - 30, y: cy - off, dir: 'E', state: 'RED' },
-                { x: cx + ROAD_W / 2 + 30, y: cy + off, dir: 'W', state: 'RED' }
+                { x: cx - ROAD_W / 2 - 30, y: cy + off, dir: 'E', state: 'RED' },
+                { x: cx + ROAD_W / 2 + 30, y: cy - off, dir: 'W', state: 'RED' }
             ];
         }
 
@@ -247,8 +247,8 @@
             ctx.beginPath();
             ctx.moveTo(cx - ROAD_W / 2, cy + ROAD_W / 2); ctx.lineTo(cx, cy + ROAD_W / 2);
             ctx.moveTo(cx, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy - ROAD_W / 2);
-            ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy - ROAD_W / 2);
-            ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(cx + ROAD_W / 2, cy + ROAD_W / 2);
+            ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy + ROAD_W / 2);
+            ctx.moveTo(cx + ROAD_W / 2, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy);
             ctx.stroke();
         }
 
@@ -295,6 +295,21 @@
         function drawCar(car) {
             ctx.save(); ctx.translate(car.x, car.y);
             ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(-car.w / 2 + 4, -car.h / 2 + 4, car.w, car.h);
+
+            // Rodas
+            ctx.fillStyle = '#000';
+            if (car.dy !== 0) {
+                ctx.fillRect(-car.w / 2 - 2, -car.h / 2 + 8, 4, 12);
+                ctx.fillRect(car.w / 2 - 2, -car.h / 2 + 8, 4, 12);
+                ctx.fillRect(-car.w / 2 - 2, car.h / 2 - 20, 4, 12);
+                ctx.fillRect(car.w / 2 - 2, car.h / 2 - 20, 4, 12);
+            } else {
+                ctx.fillRect(-car.w / 2 + 8, -car.h / 2 - 2, 12, 4);
+                ctx.fillRect(-car.w / 2 + 8, car.h / 2 - 2, 12, 4);
+                ctx.fillRect(car.w / 2 - 20, -car.h / 2 - 2, 12, 4);
+                ctx.fillRect(car.w / 2 - 20, car.h / 2 - 2, 12, 4);
+            }
+
             ctx.fillStyle = car.color;
             // Carro arredondado
             const r = 8;
@@ -304,6 +319,17 @@
             ctx.lineTo(-car.w / 2 + r, car.h / 2); ctx.quadraticCurveTo(-car.w / 2, car.h / 2, -car.w / 2, car.h / 2 - r);
             ctx.lineTo(-car.w / 2, -car.h / 2 + r); ctx.quadraticCurveTo(-car.w / 2, -car.h / 2, -car.w / 2 + r, -car.h / 2);
             ctx.fill();
+
+            // Vidros simples
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            if (car.dy !== 0) {
+                ctx.fillRect(-car.w / 2 + 6, -car.h / 2 + 10, car.w - 12, 8);
+                ctx.fillRect(-car.w / 2 + 6, car.h / 2 - 18, car.w - 12, 8);
+            } else {
+                ctx.fillRect(-car.w / 2 + 10, -car.h / 2 + 6, 8, car.h - 12);
+                ctx.fillRect(car.w / 2 - 18, -car.h / 2 + 6, 8, car.h - 12);
+            }
+
             ctx.restore();
         }
 

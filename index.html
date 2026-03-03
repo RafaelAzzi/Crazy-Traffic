@@ -201,19 +201,12 @@
         let cars = [], lights = [];
 
         function initLights() {
-            const cx = W / 2, cy = H / 2;
-            const stopDist = ROAD_W / 2 + 35; // Distância do centro para a calçada onde fica o semáforo
-            const laneDist = ROAD_W / 4 + 10;   // Pequeno ajuste para alinhar com a pista
-
+            const cx = W / 2, cy = H / 2, off = ROAD_W / 2 + 40;
             lights = [
-                // Semáforo para quem vem do SUL indo p/ NORTE (Pista esquerda)
-                { x: cx - ROAD_W / 2 - 25, y: cy + stopDist, dir: 'N', state: 'RED' },
-                // Semáforo para quem vem do NORTE indo p/ SUL (Pista direita)
-                { x: cx + ROAD_W / 2 + 25, y: cy - stopDist, dir: 'S', state: 'RED' },
-                // Semáforo para quem vem do OESTE indo p/ LESTE (Pista baixo)
-                { x: cx - stopDist, y: cy + ROAD_W / 2 + 25, dir: 'E', state: 'RED' },
-                // Semáforo para quem vem do LESTE indo p/ OESTE (Pista cima)
-                { x: cx + stopDist, y: cy - ROAD_W / 2 - 25, dir: 'W', state: 'RED' }
+                { x: cx - off, y: cy + ROAD_W / 2 + 30, dir: 'N', state: 'RED' },
+                { x: cx + off, y: cy - ROAD_W / 2 - 30, dir: 'S', state: 'RED' },
+                { x: cx - ROAD_W / 2 - 30, y: cy - off, dir: 'E', state: 'RED' },
+                { x: cx + ROAD_W / 2 + 30, y: cy + off, dir: 'W', state: 'RED' }
             ];
         }
 
@@ -249,17 +242,13 @@
             ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(W, cy);
             ctx.stroke();
 
-            // Faixas de Pare (Stop Lines)
-            ctx.setLineDash([]); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            // Faixas de Pare
+            ctx.setLineDash([]); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,0.8)';
             ctx.beginPath();
-            // Sul -> Norte (Pista da esquerda na vertical vindo de baixo)
             ctx.moveTo(cx - ROAD_W / 2, cy + ROAD_W / 2); ctx.lineTo(cx, cy + ROAD_W / 2);
-            // Norte -> Sul (Pista da direita na vertical vindo de cima)
             ctx.moveTo(cx, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy - ROAD_W / 2);
-            // Oeste -> Leste (Pista de baixo na horizontal vindo da esquerda)
-            ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy + ROAD_W / 2);
-            // Leste -> Oeste (Pista de cima na horizontal vindo da direita)
-            ctx.moveTo(cx + ROAD_W / 2, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy);
+            ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy - ROAD_W / 2);
+            ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(cx + ROAD_W / 2, cy + ROAD_W / 2);
             ctx.stroke();
         }
 

@@ -196,7 +196,7 @@
         const CAR_H = 60;
 
         let gameState = 'MENU';
-        let score = 0, timeLeft = 60, level = 1, spawnRate = 2200;
+        let score = 0, timeLeft = 45, level = 1, spawnRate = 2200;
         let lastSpawn = 0, lastTick = 0;
         let cars = [], lights = [];
 
@@ -212,7 +212,7 @@
 
         function startGame() {
             gameState = 'PLAYING';
-            score = 0; timeLeft = 60; level = 1; spawnRate = 2200;
+            score = 0; timeLeft = 45; level = 1; spawnRate = 2200;
             cars = [];
             scoreEl.innerText = score;
             timeEl.innerText = timeLeft;
@@ -226,75 +226,61 @@
         function drawMap() {
             const cx = W / 2, cy = H / 2;
 
-            // Grama base
+            // Grama base (Cor principal do fundo)
             ctx.fillStyle = '#2d5a27';
             ctx.fillRect(0, 0, W, H);
 
-            // Detalhes de grama (pequenos pontos mais claros)
-            ctx.fillStyle = '#3a6b33';
-            for (let i = 0; i < W; i += 40) {
-                for (let j = 0; j < H; j += 40) {
-                    if ((i + j) % 3 === 0) ctx.fillRect(i + Math.sin(j) * 10, j + Math.cos(i) * 10, 2, 2);
-                }
-            }
-
-            // Casas e Prédios (Decorativo)
-            function drawBuilding(x, y, w, h, color) {
-                if (x + w > cx - ROAD_W / 2 - 20 && x < cx + ROAD_W / 2 + 20 && y + h > cy - ROAD_W / 2 - 20 && y < cy + ROAD_W / 2 + 20) return;
-                if (x < cx + ROAD_W / 2 + 10 && x + w > cx - ROAD_W / 2 - 10) { if (y < H && y + h > 0) { if (!(y > cy + ROAD_W / 2 || y + h < cy - ROAD_W / 2)) return; } }
-                if (y < cy + ROAD_W / 2 + 10 && y + h > cy - ROAD_W / 2 - 10) { if (x < W && x + w > 0) { if (!(x > cx + ROAD_W / 2 || x + w < cx - ROAD_W / 2)) return; } }
-
-                ctx.fillStyle = 'rgba(0,0,0,0.2)'; // Sombra
-                ctx.fillRect(x + 5, y + 5, w, h);
+            // -- DECORAÇÃO DO CENÁRIO (SIMPLES E VISÍVEL) --
+            // Função para desenhar casas simples
+            function drawHouse(x, y, color) {
+                // Corpo da casa
                 ctx.fillStyle = color;
-                ctx.fillRect(x, y, w, h);
-                ctx.fillStyle = '#555'; // Telhado/Topo
-                ctx.fillRect(x, y, w, 5);
+                ctx.fillRect(x, y, 60, 50);
+                // Telhado
+                ctx.fillStyle = '#7b241c';
+                ctx.beginPath();
+                ctx.moveTo(x - 10, y);
+                ctx.lineTo(x + 30, y - 25);
+                ctx.lineTo(x + 70, y);
+                ctx.fill();
+                // Porta
+                ctx.fillStyle = '#5d4037';
+                ctx.fillRect(x + 20, y + 20, 20, 30);
                 // Janelas
                 ctx.fillStyle = '#f1c40f';
-                for (let i = 10; i < w - 10; i += 20) {
-                    for (let j = 15; j < h - 10; j += 25) {
-                        ctx.fillRect(x + i, y + j, 8, 10);
-                    }
-                }
+                ctx.fillRect(x + 5, y + 10, 10, 10);
+                ctx.fillRect(x + 45, y + 10, 10, 10);
             }
 
-            drawBuilding(100, 100, 60, 80, '#8e44ad');
-            drawBuilding(800, 120, 70, 90, '#2980b9');
-            drawBuilding(150, 600, 80, 100, '#c0392b');
-            drawBuilding(750, 550, 90, 70, '#d35400');
+            // Casas nos cantos
+            drawHouse(100, 100, '#f4d03f');
+            drawHouse(820, 100, '#5dade2');
+            drawHouse(120, 650, '#eb984e');
+            drawHouse(800, 680, '#a569bd');
 
-            // Árvores
+            // Função para desenhar árvores simples
             function drawTree(x, y) {
-                // Não desenha se estiver na estrada
-                if (x > cx - ROAD_W / 2 - 10 && x < cx + ROAD_W / 2 + 10) return;
-                if (y > cy - ROAD_W / 2 - 10 && y < cy + ROAD_W / 2 + 10) return;
-
-                ctx.fillStyle = '#5d4037'; // Tronco
-                ctx.fillRect(x - 4, y, 8, 15);
-                ctx.fillStyle = '#1b5e20'; // Folhas
+                // Tronco
+                ctx.fillStyle = '#5d4037';
+                ctx.fillRect(x - 6, y, 12, 25);
+                // Folhas (Círculo verde grande)
+                ctx.fillStyle = '#1b5e20';
                 ctx.beginPath();
-                ctx.arc(x, y - 5, 15, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#2e7d32';
-                ctx.beginPath();
-                ctx.arc(x + 5, y - 10, 10, 0, Math.PI * 2);
+                ctx.arc(x, y - 10, 25, 0, Math.PI * 2);
                 ctx.fill();
             }
 
-            const treePositions = [
-                [50, 50], [200, 40], [350, 80], [40, 300], [80, 500],
-                [900, 50], [850, 350], [920, 500], [880, 700],
-                [300, 720], [100, 750], [400, 700], [650, 50], [700, 750]
-            ];
-            treePositions.forEach(p => drawTree(p[0], p[1]));
+            // Árvores espalhadas
+            const trees = [[250, 150], [700, 120], [150, 380], [820, 450], [300, 600], [650, 720], [450, 100], [550, 700]];
+            trees.forEach(t => drawTree(t[0], t[1]));
+            // ------------------------------------
 
             // Estradas
             ctx.fillStyle = '#3c3c3c';
-            ctx.fillRect(cx - ROAD_W / 2, 0, ROAD_W, H);
-            ctx.fillRect(0, cy - ROAD_W / 2, W, ROAD_W);
+            ctx.fillRect(cx - ROAD_W / 2, 0, ROAD_W, H); // Vertical
+            ctx.fillRect(0, cy - ROAD_W / 2, W, ROAD_W); // Horizontal
 
-            // Faixas brancas
+            // Faixas brancas intercaladas
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.setLineDash([20, 20]);
             ctx.beginPath();
             ctx.moveTo(cx, 0); ctx.lineTo(cx, cy - ROAD_W / 2);
@@ -429,7 +415,7 @@
         }
 
         function nextLevel() {
-            level++; timeLeft = 60; spawnRate = Math.max(600, spawnRate * 0.82);
+            level++; timeLeft = 45; spawnRate = Math.max(600, spawnRate * 0.82);
             levelEl.innerText = level; noticeEl.style.opacity = '1';
             setTimeout(() => noticeEl.style.opacity = '0', 2000);
         }

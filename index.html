@@ -157,7 +157,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Tempo</div>
-                <div id="time-val" class="stat-value">45</div>
+                <div id="time-val" class="stat-value">30</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Score</div>
@@ -196,7 +196,7 @@
         const CAR_H = 60;
 
         let gameState = 'MENU';
-        let score = 0, timeLeft = 45, level = 1, spawnRate = 2200;
+        let score = 0, timeLeft = 30, level = 1, spawnRate = 2200;
         let lastSpawn = 0, lastTick = 0;
         let cars = [], lights = [];
 
@@ -212,7 +212,7 @@
 
         function startGame() {
             gameState = 'PLAYING';
-            score = 0; timeLeft = 45; level = 1; spawnRate = 2200;
+            score = 0; timeLeft = 30; level = 1; spawnRate = 2200;
             cars = [];
             scoreEl.innerText = score;
             timeEl.innerText = timeLeft;
@@ -415,7 +415,7 @@
         }
 
         function nextLevel() {
-            level++; timeLeft = 45; spawnRate = Math.max(600, spawnRate * 0.82);
+            level++; timeLeft = 30; spawnRate = Math.max(600, spawnRate * 0.82);
             levelEl.innerText = level; noticeEl.style.opacity = '1';
             setTimeout(() => noticeEl.style.opacity = '0', 2000);
         }

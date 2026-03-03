@@ -242,12 +242,16 @@
             ctx.moveTo(cx + ROAD_W / 2, cy); ctx.lineTo(W, cy);
             ctx.stroke();
 
-            // Faixas de Pare
-            ctx.setLineDash([]); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            // Faixas de Pare (Stop Lines)
+            ctx.setLineDash([]); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,0.9)';
             ctx.beginPath();
+            // Sul -> Norte (Pista da esquerda na vertical vindo de baixo)
             ctx.moveTo(cx - ROAD_W / 2, cy + ROAD_W / 2); ctx.lineTo(cx, cy + ROAD_W / 2);
+            // Norte -> Sul (Pista da direita na vertical vindo de cima)
             ctx.moveTo(cx, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy - ROAD_W / 2);
+            // Oeste -> Leste (Pista de baixo na horizontal vindo da esquerda)
             ctx.moveTo(cx - ROAD_W / 2, cy); ctx.lineTo(cx - ROAD_W / 2, cy + ROAD_W / 2);
+            // Leste -> Oeste (Pista de cima na horizontal vindo da direita)
             ctx.moveTo(cx + ROAD_W / 2, cy - ROAD_W / 2); ctx.lineTo(cx + ROAD_W / 2, cy);
             ctx.stroke();
         }
@@ -294,24 +298,28 @@
 
         function drawCar(car) {
             ctx.save(); ctx.translate(car.x, car.y);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(-car.w / 2 + 4, -car.h / 2 + 4, car.w, car.h);
 
-            // Rodas
-            ctx.fillStyle = '#000';
-            if (car.dy !== 0) {
-                ctx.fillRect(-car.w / 2 - 2, -car.h / 2 + 8, 4, 12);
-                ctx.fillRect(car.w / 2 - 2, -car.h / 2 + 8, 4, 12);
-                ctx.fillRect(-car.w / 2 - 2, car.h / 2 - 20, 4, 12);
-                ctx.fillRect(car.w / 2 - 2, car.h / 2 - 20, 4, 12);
-            } else {
-                ctx.fillRect(-car.w / 2 + 8, -car.h / 2 - 2, 12, 4);
-                ctx.fillRect(-car.w / 2 + 8, car.h / 2 - 2, 12, 4);
-                ctx.fillRect(car.w / 2 - 20, -car.h / 2 - 2, 12, 4);
-                ctx.fillRect(car.w / 2 - 20, car.h / 2 - 2, 12, 4);
+            // Sombra
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(-car.w / 2 + 4, -car.h / 2 + 4, car.w, car.h);
+
+            // Rodas (Pretas e visíveis nas laterais)
+            ctx.fillStyle = '#111';
+            const wheelW = 6, wheelH = 12;
+            if (car.dy !== 0) { // Carro Vertical
+                ctx.fillRect(-car.w / 2 - 2, -car.h / 2 + 10, wheelW, wheelH); // Front Left
+                ctx.fillRect(car.w / 2 - 4, -car.h / 2 + 10, wheelW, wheelH);  // Front Right
+                ctx.fillRect(-car.w / 2 - 2, car.h / 2 - 22, wheelW, wheelH);  // Rear Left
+                ctx.fillRect(car.w / 2 - 4, car.h / 2 - 22, wheelW, wheelH);   // Rear Right
+            } else { // Carro Horizontal
+                ctx.fillRect(-car.w / 2 + 10, -car.h / 2 - 2, wheelH, wheelW);
+                ctx.fillRect(-car.w / 2 + 10, car.h / 2 - 4, wheelH, wheelW);
+                ctx.fillRect(car.w / 2 - 22, -car.h / 2 - 2, wheelH, wheelW);
+                ctx.fillRect(car.w / 2 - 22, car.h / 2 - 4, wheelH, wheelW);
             }
 
+            // Corpo do Carro
             ctx.fillStyle = car.color;
-            // Carro arredondado
             const r = 8;
             ctx.beginPath();
             ctx.moveTo(-car.w / 2 + r, -car.h / 2); ctx.lineTo(car.w / 2 - r, -car.h / 2); ctx.quadraticCurveTo(car.w / 2, -car.h / 2, car.w / 2, -car.h / 2 + r);
@@ -320,15 +328,12 @@
             ctx.lineTo(-car.w / 2, -car.h / 2 + r); ctx.quadraticCurveTo(-car.w / 2, -car.h / 2, -car.w / 2 + r, -car.h / 2);
             ctx.fill();
 
-            // Vidros simples
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            if (car.dy !== 0) {
-                ctx.fillRect(-car.w / 2 + 6, -car.h / 2 + 10, car.w - 12, 8);
-                ctx.fillRect(-car.w / 2 + 6, car.h / 2 - 18, car.w - 12, 8);
-            } else {
-                ctx.fillRect(-car.w / 2 + 10, -car.h / 2 + 6, 8, car.h - 12);
-                ctx.fillRect(car.w / 2 - 18, -car.h / 2 + 6, 8, car.h - 12);
-            }
+            // Parabrisas (Dando direção ao carro)
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            if (car.dy < 0) ctx.fillRect(-car.w / 2 + 5, -car.h / 2 + 8, car.w - 10, 10);      // Frente p/ Norte
+            else if (car.dy > 0) ctx.fillRect(-car.w / 2 + 5, car.h / 2 - 18, car.w - 10, 10); // Frente p/ Sul
+            else if (car.dx > 0) ctx.fillRect(car.w / 2 - 18, -car.h / 2 + 5, 10, car.h - 10); // Frente p/ Leste
+            else if (car.dx < 0) ctx.fillRect(-car.w / 2 + 8, -car.h / 2 + 5, 10, car.h - 10); // Frente p/ Oeste
 
             ctx.restore();
         }
